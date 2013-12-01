@@ -1,0 +1,11 @@
+.OpenedCell {
+
+}
+
+.CurrentCell {
+    background-color: greenyellow;
+}
+
+.GoalCell {
+    background-color: forestgreen;
+}
