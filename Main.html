@@ -1,0 +1,33 @@
+<head>
+    <script type="text/javascript" src="lib/jquery2.02.js"></script>
+    <script type="text/javascript" src="lib/jquery.cookie.js"></script>
+    <script type="text/javascript" src="src/Levels.js"></script>
+    <script type="text/javascript" src="src/CodeRunner.js"></script>
+    <script type="text/javascript" src="src/Game.js"></script>
+    <link rel="stylesheet" type="text/css" href="styles/Main.css">
+    <link rel="stylesheet" type="text/css" href="styles/Game.css">
+</head>
+<body>
+<div id="GameBlock" class="GameBlock">
+    <div id="GamePanel" class="GamePanel MainBlock">
+        <span id="LevelChoosingLabel"></span>
+        <input id="LevelChoosingControl" class="LevelControl"/>
+        <input id="LevelChoosingButton" class="LineControl" type="button" value="GO" title="Go to level by number"/>
+    </div>
+    <div class="RightBlock">
+        <div class="CodePanel">
+            <input id="CodeField" type="text"/>
+        </div>
+        <div id="GameField" class="GameField MainBlock"></div>
+    </div>
+</div>
+
+<script LANGUAGE="javascript">
+    $(document).ready(function(){
+        Game.Init('GameField', 'CodeField');
+        $('#LevelChoosingButton').click(function(){
+            Game.goToLevel($('#LevelChoosingControl').val() - 0);
+        });
+    });
+</script>
+</body>
