@@ -23,6 +23,11 @@ var Game = {
     codeField : undefined,
 
     /**
+     * Стек выбранных ячеек.
+     */
+    stackSelectedCells : [],
+
+    /**
      * Инициализировать игру.
      */
     Init : function(gameFieldId, codeFieldId) {
@@ -37,7 +42,8 @@ var Game = {
      * Очистить игрое поле от предыдущего уровня.
      */
     clear : function() {
-
+        this.gameField.find('table').remove();
+        this.codeField.val('');
     },
 
     /**
@@ -70,8 +76,31 @@ var Game = {
                     Row : i,
                     Col : j
                 };
+
                 this.addCellClickEvent(currentCell);
                 this.currentLevel.Field[i].push(currentCell);
+            }
+        }
+
+        for (i = 0; i < this.currentLevel.Rows; i++) {
+            for (j = 0; j < this.currentLevel.Cols; j++) {
+                currentCell = this.currentLevel.Field[i][j];
+
+                if (i > 0) {
+                    currentCell.TopCell = this.currentLevel.Field[i - 1][j];
+                }
+
+                if (j > 0) {
+                    currentCell.LeftCell = this.currentLevel.Field[i][j - 1];
+                }
+
+                if (i < this.currentLevel.Rows - 1) {
+                    currentCell.BottomCell = this.currentLevel.Field[i + 1][j];
+                }
+
+                if (j < this.currentLevel.Cols - 1) {
+                    currentCell.RightCell = this.currentLevel.Field[i][j + 1];
+                }
             }
         }
 
@@ -82,6 +111,26 @@ var Game = {
         this.currentLevel.FinishCell.Td.text(this.currentLevel.FinishCell.Text);
 
         this.openCell(this.currentLevel.StartCell);
+    },
+
+    /**
+     * Отменить выбор последней ячейки.
+     */
+    undo : function() {
+        if (this.stackSelectedCells.length > 1) {
+            var cell = this.stackSelectedCells[this.stackSelectedCells.length - 1];
+
+            this.removeCellFromStack(cell);
+
+            if (cell.LinkCells) {
+                for (var i = 0; i < cell.LinkCells.length; i++) {
+                    this.closeCell(cell.LinkCells[i]);
+                }
+            }
+
+            cell.Td.removeClass('CurrentCell');
+            this.currentLevel.SelectedCell = this.stackSelectedCells[this.stackSelectedCells.length - 2];
+        }
     },
 
     /**
@@ -102,12 +151,12 @@ var Game = {
      * Текущая позиция показывает, какая ячейка была открыта последней.
      * @param {object} cell Ячейка, которую необходимо выделить.
      */
-    selectCell : function(cell){
+    selectCell : function(cell) {
         if (this.currentLevel.SelectedCell == cell || !cell.HasOpened) {
             return;
         }
 
-        this.addCell(cell);
+        this.addCellToStack(cell);
 
         if (this.currentLevel.FinishCell == cell) {
             CodeRunner.Run(this.codeField.val());
@@ -117,21 +166,38 @@ var Game = {
         cell.Td.text(cell.Text);
         cell.Td.removeClass('OpenedCell');
         cell.Td.addClass('CurrentCell');
+        cell.LinkCells = [];
 
-        if (cell.Row > 0) {
-            this.openCell(this.currentLevel.Field[cell.Row - 1][cell.Col]);
+        if (cell.TopCell) {
+            var openedCell = this.openCell(cell.TopCell);
+
+            if (openedCell) {
+                cell.LinkCells.push(openedCell);
+            }
         }
 
-        if (cell.Col > 0) {
-            this.openCell(this.currentLevel.Field[cell.Row][cell.Col - 1]);
+        if (cell.LeftCell) {
+            var openedCell = this.openCell(cell.LeftCell);
+
+            if (openedCell) {
+                cell.LinkCells.push(openedCell);
+            }
         }
 
-        if (cell.Row < this.currentLevel.Rows - 1) {
-            this.openCell(this.currentLevel.Field[cell.Row + 1][cell.Col]);
+        if (cell.BottomCell) {
+            var openedCell = this.openCell(cell.BottomCell);
+
+            if (openedCell) {
+                cell.LinkCells.push(openedCell);
+            }
         }
 
-        if (cell.Col < this.currentLevel.Cols - 1) {
-            this.openCell(this.currentLevel.Field[cell.Row][cell.Col + 1]);
+        if (cell.RightCell) {
+            var openedCell = this.openCell(cell.RightCell);
+
+            if (openedCell) {
+                cell.LinkCells.push(openedCell);
+            }
         }
 
         this.currentLevel.SelectedCell = cell;
@@ -142,26 +208,67 @@ var Game = {
      * При этом тескт ячейки попадет в основной код.
      * @param {object} cell Ячейка, которую необходимо добавить в стек выбранных.
      */
-    addCell : function(cell) {
+    addCellToStack : function(cell) {
         if (cell.HasAdded) {
             return;
         }
 
         cell.HasAdded = true;
+        this.stackSelectedCells.push(cell);
         this.codeField.val(this.codeField.val() + cell.Text);
+    },
+
+    /**
+     * Удалить ячейку из стека выбранных.
+     * @param {object} cell Ячейка, которую необходимо удалить.
+     */
+    removeCellFromStack : function(cell) {
+        var index = this.stackSelectedCells.indexOf(cell);
+
+        if(index > 0) {
+            cell.HasAdded = false;
+
+            // Удалим из стека.
+            this.stackSelectedCells.splice(index, 1);
+
+            // Удалим часть кода.
+            var code = this.codeField.val();
+            code = code.substring(0, code.length - cell.Text.length);
+            this.codeField.val(code);
+        }
     },
 
     /**
      * Открыть ячейку. Показать игроку текст ячейки.
      * @param {object} cell Ячейка, которую необходимо открыть.
+     * @return {object} Возвращает саму ячейку в случае, если она была открыта.
      */
     openCell : function(cell) {
         if (cell.HasOpened) {
-            return;
+            return null;
         }
 
         cell.HasOpened = true;
         cell.Td.text(cell.Text);
         cell.Td.addClass('OpenedCell');
+
+        return cell;
+    },
+
+    /**
+     * Закрыть ячейку. Скрыть текст ячейки от игрока.
+     * @param {object} cell Ячейка, которую необходимо скрыть.
+     * @return {object} Возвращает саму ячейку в случае, если она была закрыта.
+     */
+    closeCell : function(cell) {
+        if (!cell.HasOpened || cell === this.currentLevel.StartCell) {
+            return null;
+        }
+
+        cell.HasOpened = false;
+        cell.Td.text('');
+        cell.Td.removeClass('OpenedCell');
+
+        return cell;
     }
 };

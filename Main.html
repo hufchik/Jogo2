@@ -13,6 +13,7 @@
         <span id="LevelChoosingLabel"></span>
         <input id="LevelChoosingControl" class="LevelControl"/>
         <input id="LevelChoosingButton" class="LineControl" type="button" value="GO" title="Go to level by number"/>
+        <input id="UndoButton" class="LineControl" type="button" value="Undo" title="Undo last operation"/>
     </div>
     <div class="RightBlock">
         <div class="CodePanel">
@@ -25,8 +26,13 @@
 <script LANGUAGE="javascript">
     $(document).ready(function(){
         Game.Init('GameField', 'CodeField');
-        $('#LevelChoosingButton').click(function(){
+
+        $('#LevelChoosingButton').click(function() {
             Game.goToLevel($('#LevelChoosingControl').val() - 0);
+        });
+
+        $('#UndoButton').click(function() {
+            Game.undo();
         });
     });
 </script>
